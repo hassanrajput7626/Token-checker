@@ -1,95 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CONVO_POST</title>
+    <meta charset="UTF-8">
+    <title>Facebook Token Checker</title>
     <style>
-        .error, .success {
+        /* existing styles trimmed for brevity */
+        .success, .error {
             font-weight: bold;
-            text-align: center;
             padding: 10px;
             border-radius: 8px;
             margin-top: 15px;
-        }
-
-        .error {
-            color: #fff;
-            background-color: rgba(255, 0, 0, 0.5);
-            border: 1px solid red;
+            text-align: center;
         }
 
         .success {
-            color: #fff;
             background-color: rgba(0, 128, 0, 0.5);
-            border: 1px solid green;
+            color: white;
         }
 
-        h1 {
-            text-align: center;
-            font-family: cursive;
-            font-size: 22px;
+        .error {
+            background-color: rgba(255, 0, 0, 0.5);
+            color: white;
         }
 
-        .btn, input {
-            height: 40px;
+        table {
             width: 100%;
             margin-top: 20px;
-            background-color: green;
-            border: none;
-            color: white;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            box-sizing: border-box;
+            border-collapse: collapse;
+            background-color: white;
+            color: black;
         }
 
-        input {
-            background: none;
-            outline: none;
-            border: 2px solid white;
-            color: white;
-            padding: 10px;
-            background-color: transparent;
-        }
-
-        h2 {
+        th, td {
+            padding: 8px;
+            border: 1px solid #ccc;
             text-align: center;
-            font-size: 15px;
+        }
+
+        th {
+            background-color: #222;
             color: white;
-        }
-
-        label {
-            color: white;
-        }
-
-        body {
-            background-image: url('https://i.ibb.co/R3R9PBJ/dcf7fe90b10e62c58481e55c7c6e9a22.jpg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-attachment: fixed;
-            color: white;
-            height: 100vh;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .container {
-            max-width: 350px;
-            width: 100%;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 0 15px white;
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
         }
     </style>
 </head>
@@ -97,9 +47,11 @@
 
 <div class="container">
     <h1>Facebook Token Checker</h1>
-    <form method="post">
-        <input type="text" name="access_token" placeholder="Input_Token" required>
-        <button class="btn" type="submit">CHECK TOKEN</button>
+    <form method="post" enctype="multipart/form-data">
+        <input type="text" name="access_token" placeholder="Input_Token">
+        <label for="token_file">Upload .txt File with Tokens:</label>
+        <input type="file" name="token_file" accept=".txt">
+        <button class="btn" type="submit">CHECK</button>
     </form>
 
     {% if profile_name %}
@@ -111,6 +63,26 @@
         <div class="error">
             ❌ {{ error_message }}
         </div>
+    {% endif %}
+
+    {% if results %}
+        <h2>Multi Token Results:</h2>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Token (Partial)</th>
+                <th>Status</th>
+                <th>User Name</th>
+            </tr>
+            {% for result in results %}
+            <tr>
+                <td>{{ result.index }}</td>
+                <td>{{ result.token }}</td>
+                <td>{{ result.status }}</td>
+                <td>{{ result.name }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     {% endif %}
 
     <footer>
