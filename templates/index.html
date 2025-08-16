@@ -5,16 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CONVO_POST</title>
     <style>
-        /* CSS for styling elements */
-        .error {
-            color: red;
+        .error, .success {
             font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
         }
-        h1{
+
+        .error {
+            color: #fff;
+            background-color: rgba(255, 0, 0, 0.5);
+            border: 1px solid red;
+        }
+
+        .success {
+            color: #fff;
+            background-color: rgba(0, 128, 0, 0.5);
+            border: 1px solid green;
+        }
+
+        h1 {
             text-align: center;
             font-family: cursive;
-            font-size: 19px;
+            font-size: 22px;
         }
+
         .btn, input {
             height: 40px;
             width: 100%;
@@ -27,6 +43,7 @@
             font-size: 16px;
             box-sizing: border-box;
         }
+
         input {
             background: none;
             outline: none;
@@ -35,20 +52,23 @@
             padding: 10px;
             background-color: transparent;
         }
-        h2{
+
+        h2 {
             text-align: center;
             font-size: 15px;
             color: white;
         }
-        label{
+
+        label {
             color: white;
         }
-        body{
+
+        body {
             background-image: url('https://i.ibb.co/R3R9PBJ/dcf7fe90b10e62c58481e55c7c6e9a22.jpg');
             background-size: cover;
             background-repeat: no-repeat;
-            background-position: center center; /* Center the background image */
-            background-attachment: fixed; /* Keep the background fixed on scroll */
+            background-position: center center;
+            background-attachment: fixed;
             color: white;
             height: 100vh;
             margin: 0;
@@ -56,17 +76,16 @@
             align-items: center;
             justify-content: center;
         }
+
         .container {
             max-width: 350px;
             width: 100%;
             border-radius: 20px;
             padding: 20px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
             box-shadow: 0 0 15px white;
-            border: none;
-            resize: none;
             background: rgba(0, 0, 0, 0.5);
         }
+
         .footer {
             text-align: center;
             margin-top: 20px;
@@ -82,13 +101,18 @@
         <input type="text" name="access_token" placeholder="Input_Token" required>
         <button class="btn" type="submit">CHECK TOKEN</button>
     </form>
-    
-    {% if error_message %}
-        <p class="error">{{ error_message }}</p>
-    {% elif profile_name %}
-        <p>Your Profile Name: {{ profile_name }}</p>
+
+    {% if profile_name %}
+        <div class="success">
+            ✅ Valid Token<br>
+            Welcome, <strong>{{ profile_name }}</strong>!
+        </div>
+    {% elif error_message %}
+        <div class="error">
+            ❌ {{ error_message }}
+        </div>
     {% endif %}
-    
+
     <footer>
         <h2>ᴍᴀᴅᴇ ʙʏ ʜᴀꜱꜱɴ ʀᴀᴊᴘᴜᴛ</h2>
     </footer>
