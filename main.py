@@ -709,41 +709,24 @@ def extract_uid(fb_url):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    tool = None
-    result = None
-    output = None
-    uid_result = None
-    token_value = ""
-    extractor_token_value = ""
-    link_value = ""
-    
+    uid = None
     if request.method == 'POST':
-        tool = request.form.get('tool')
-        
-        if tool == 'token':
-            token_value = request.form.get('token', '').strip()
-            if token_value:
-                result = check_token(token_value)
-                
-        elif tool == 'extractor':
-            extractor_token_value = request.form.get('extractor_token', '').strip()
-            if extractor_token_value:
-                pages = fetch_pages(extractor_token_value)
-                groups = fetch_messenger_groups(extractor_token_value)
-                
-                output = {
-                    'pages': pages if pages else [],
-                    'groups': groups if groups else [],
-                    'error': None
-                }
-                
-                if not pages and not groups:
-                    output['error'] = "No pages or groups found. The token might be invalid or have insufficient permissions."
-                
-        elif tool == 'uid':
-            link_value = request.form.get('link', '').strip()
-            if link_value:
-                uid_result = extract_uid(link_value)
+        fb_url = request.form['fb_url']
+        try:
+            resp = requests.get(fb_url)
+            text = resp.text
+            patterns = [
+                r"/posts/(\d+)",
+                r"story_fbid=(\d+)",
+                r"""facebook\.com.*?/photos/\d+/(\d+)"""
+            ]
+            for pat in patterns:
+                match = re.search(pat, text)
+                if match:
+                    uid = match.group(1)
+                    break
+        except Exception as e:
+            uid = f"Error: {e}"
     
     return render_template_string(
         MAIN_TEMPLATE, 
