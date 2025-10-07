@@ -627,106 +627,164 @@ def fetch_pages(token):
         return None
 
 def extract_uid(fb_url):
-    import re
-    import urllib.parse
-    import requests
-
-    # Normalize URL
+    # Normalize the URL
     fb_url = fb_url.strip()
     if not fb_url.startswith('http'):
         fb_url = 'https://' + fb_url
-
-    # Parse URL
+    
+    # Parse URL to handle Facebook Lite and other variants
     parsed = urllib.parse.urlparse(fb_url)
     domain = parsed.netloc.lower()
-    path = parsed.path
+    path = parsed.path.lower()
     query = urllib.parse.parse_qs(parsed.query)
-
+    
     # Initialize result
     result = {
         'url': fb_url,
         'type': 'unknown',
         'uid': 'Not found'
     }
-
+    
     try:
-        # ✅ profile.php?id= style
-        if "profile.php" in path and "id" in query:
-            result["type"] = "profile"
-            result["uid"] = query["id"][0]
-            return result
-
-        # ✅ groups/{groupid}
-        match = re.search(r"/groups/(\d+)", path)
-        if match:
-            result["type"] = "group"
-            result["uid"] = match.group(1)
-            return result
-
-        # ✅ posts/{postid}
-        match = re.search(r"/posts/(\d+)", path)
-        if match:
-            result["type"] = "post"
-            result["uid"] = match.group(1)
-            return result
-
-        # ✅ reels, videos, watch URLs
-        match = re.search(r"/(?:reel|reels|video|videos|watch)/(\d+)", fb_url)
-        if match:
-            result["type"] = "video"
-            result["uid"] = match.group(1)
-            return result
-
-        # ✅ story_fbid=, fbid=, id=
-        match = re.search(r"(?:story_fbid|fbid|id)=(\d+)", fb_url)
-        if match:
-            result["type"] = "post"
-            result["uid"] = match.group(1)
-            return result
-
-        # ✅ username-based URL → scrape from mbasic.facebook.com
-        match = re.search(r"facebook\.com/([A-Za-z0-9.\-_]+)/?$", fb_url)
-        if match:
-            username = match.group(1)
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(f"https://mbasic.facebook.com/{username}", headers=headers, allow_redirects=True, timeout=10)
-            uid_match = re.search(r"owner_id=(\d+)", response.text)
-            if uid_match:
-                result["type"] = "profile"
-                result["uid"] = uid_match.group(1)
+        # Handle profile URLs
+        if 'profile.php' in path:
+            if 'id' in query:
+                uid = query['id'][0]
+                result['type'] = 'profile'
+                result['uid'] = uid
                 return result
-
-        # ✅ fallback: any long number
-        match = re.search(r"(\d{8,})", fb_url)
-        if match:
-            result["type"] = "generic"
-            result["uid"] = match.group(1)
+        
+        # Handle mobile and lite URLs
+        if 'm.facebook.com' in domain or 'lm.facebook.com' in domain:
+            # Check if it's a profile URL
+            if '/profile.php' in path:
+                if 'id' in query:
+                    uid = query['id'][0]
+                    result['type'] = 'profile'
+                    result['uid'] = uid
+                    return result
+            
+            # Check for username pattern
+            match = re.search(r'^/([^/]+)/?$', path)
+            if match:
+                username = match.group(1)
+                # Resolve username to ID
+                response = requests.get(f"https://graph.facebook.com/{username}?fields=id&access_token=EAAZAZCqZBeF5cBO0aYQlWZBZAZBZBZAYyDZBcJZB4vZCEZC6ZAvz3qZA3Jf7QZBZAmn8m7ZCLW5rq4F0cZBkqKZCyJw4V5ZC9QbZBZAZA0pUZA0f4hZBZBZB4FQ4uZBrGZABpZCYnZCyqgKzUJZBJQfJpOZBeZBZAtC4ZAwcS7ZBZBMuYj4ZBZAm0H0BzJZCjZAwZBvHZBxQZD")
+                if response.status_code == 200:
+                    data = response.json()
+                    uid = data.get('id')
+                    if uid:
+                        result['type'] = 'profile'
+                        result['uid'] = uid
+                        return result
+        
+        # Handle standard Facebook URLs
+        if 'facebook.com' in domain:
+            # Profile URL with username
+            profile_match = re.search(r'^/([^/]+)/?$', path)
+            if profile_match:
+                username = profile_match.group(1)
+                # Resolve username to ID
+                response = requests.get(f"https://graph.facebook.com/{username}?fields=id&access_token=EAAZAZCqZBeF5cBO0aYQlWZBZAZBZBZAYyDZBcJZB4vZCEZC6ZAvz3qZA3Jf7QZBZAmn8m7ZCLW5rq4F0cZBkqKZCyJw4V5ZC9QbZBZAZA0pUZA0f4hZBZBZB4FQ4uZBrGZABpZCYnZCyqgKzUJZBJQfJpOZBeZBZAtC4ZAwcS7ZBZBMuYj4ZBZAm0H0BzJZCjZAwZBvHZBxQZD")
+                if response.status_code == 200:
+                    data = response.json()
+                    uid = data.get('id')
+                    if uid:
+                        result['type'] = 'profile'
+                        result['uid'] = uid
+                        return result
+            
+            # Post URL
+            post_match = re.search(r'/(\d{6,})(?:[/?]|$)', path)
+            if post_match:
+                uid = post_match.group(1)
+                result['type'] = 'post'
+                result['uid'] = uid
+                return result
+            
+            # Group URL
+            group_match = re.search(r'/groups/(\d+)/?', path)
+            if group_match:
+                uid = group_match.group(1)
+                result['type'] = 'group'
+                result['uid'] = uid
+                return result
+            
+            # Video URL
+            video_match = re.search(r'/watch/\?v=(\d+)', path + '?' + parsed.query)
+            if video_match:
+                uid = video_match.group(1)
+                result['type'] = 'video'
+                result['uid'] = uid
+                return result
+        
+        # Fallback to regex patterns
+        patterns = [
+            r'facebook\.com/(\d+)$',
+            r'fbid=(\d+)',
+            r'story_fbid=(\d+)',
+            r'id=(\d+)',
+            r'/(\d{10,})/?$'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, fb_url)
+            if match:
+                uid = match.group(1)
+                result['type'] = 'generic'
+                result['uid'] = uid
+                return result
+        
+        # Final fallback - try to extract any long number
+        numbers = re.findall(r'\d{9,}', fb_url)
+        if numbers:
+            result['type'] = 'generic'
+            result['uid'] = numbers[0]
             return result
-
+        
+        return result
+    
     except Exception as e:
-        result["error"] = str(e)
+        result['error'] = str(e)
         return result
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    uid = None
+    tool = None
+    result = None
+    output = None
+    uid_result = None
+    token_value = ""
+    extractor_token_value = ""
+    link_value = ""
+    
     if request.method == 'POST':
-        fb_url = request.form['fb_url']
-        try:
-            resp = requests.get(fb_url)
-            text = resp.text
-            patterns = [
-                r"/posts/(\d+)",
-                r"story_fbid=(\d+)",
-                r"""facebook\.com.*?/photos/\d+/(\d+)"""
-            ]
-            for pat in patterns:
-                match = re.search(pat, text)
-                if match:
-                    uid = match.group(1)
-                    break
-        except Exception as e:
-            uid = f"Error: {e}"
+        tool = request.form.get('tool')
+        
+        if tool == 'token':
+            token_value = request.form.get('token', '').strip()
+            if token_value:
+                result = check_token(token_value)
+                
+        elif tool == 'extractor':
+            extractor_token_value = request.form.get('extractor_token', '').strip()
+            if extractor_token_value:
+                pages = fetch_pages(extractor_token_value)
+                groups = fetch_messenger_groups(extractor_token_value)
+                
+                output = {
+                    'pages': pages if pages else [],
+                    'groups': groups if groups else [],
+                    'error': None
+                }
+                
+                if not pages and not groups:
+                    output['error'] = "No pages or groups found. The token might be invalid or have insufficient permissions."
+                
+        elif tool == 'uid':
+            link_value = request.form.get('link', '').strip()
+            if link_value:
+                uid_result = extract_uid(link_value)
     
     return render_template_string(
         MAIN_TEMPLATE, 
